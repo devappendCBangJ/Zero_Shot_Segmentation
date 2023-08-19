@@ -1,0 +1,6 @@
+
+
+ CLIP Model: ViT
+Dataset: refcoco / val / unc
+Overall IoU / mean IoU
+24.93 / 26.55

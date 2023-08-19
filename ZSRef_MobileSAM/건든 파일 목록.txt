@@ -1,0 +1,10 @@
+Our_method_with_free_solo.py
+utils.py
+
+병목 현상 1.19s
+MobileSAM_Analysis/mobile_sam/predictor.py
+-> self.features = self.model.image_encoder(input_image)
+
+병목 현상 3s 정도
+mobile_sam/utils/amg.py
+-> self._stats[k] = v[torch.as_tensor(keep, device=v.device)]

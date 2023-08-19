@@ -1,0 +1,13 @@
+/home/hi/Jupyter/ZSRef_MobileSAM_Test/ZSRef_MobileSAM_Save_Label.py
+/home/hi/Jupyter/ZSRef_MobileSAM_Test/utils.py
+/home/hi/Jupyter/ZSRef_MobileSAM_Test/data/dataset_refer_bert.py
+/home/hi/Jupyter/ZSRef_MobileSAM_Test/mobile_sam/automatic_mask_generator.py
+/home/hi/Jupyter/ZSRef_MobileSAM_Test/mobile_sam/utils/amg.py
+
+병목 현상 1.19s
+MobileSAM_Analysis/mobile_sam/predictor.py
+-> self.features = self.model.image_encoder(input_image)
+
+병목 현상 3s 정도
+mobile_sam/utils/amg.py
+-> self._stats[k] = v[torch.as_tensor(keep, device=v.device)]

@@ -1,0 +1,4 @@
+*.pth
+refcoco/
+third_parth/old_detectron2/build
+mobile_sam.pt
