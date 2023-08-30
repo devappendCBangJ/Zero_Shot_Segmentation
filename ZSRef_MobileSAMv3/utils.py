@@ -181,7 +181,7 @@ For python-based LazyConfig, use "path.key=value".
     parser.add_argument('--refer-data_root', default='./refer/data/', help='REFER dataset root directory')
     parser.add_argument('--show_results', action='store_true', help='Whether to show results ')
 
-    parser.add_argument('--sam-model-path', default='/home/hi/Jupyter/MobileSAM_Analysis/weights/mobile_sam.pt',
+    parser.add_argument('--sam-model-path', default='/home/hi/Jupyter/SegmentAnything/MobileSAM_Analysis/weights/mobile_sam.pt',
                         type=str, help='SAM 모델 경로')
     parser.add_argument('--sam-model-type', default='vit_t', type=str,
                         help='SAM 모델 Type (default, vit_h, vit_l, vit_b, vit_t)')
@@ -196,10 +196,10 @@ For python-based LazyConfig, use "path.key=value".
                         default='/media/hi/SK Gold P31/Capstone/GolfBall/Crawling_cp', type=str,
                         help='불러올 데이터셋이 있는 부모 경로')  # '/media/hi/SK Gold P31/Capstone/GolfBall/Golfball_Near_Remove_Similar_FixLabel_Remove_BboxInBbox_Remove_ErrorBboxRatio/images/train'
     parser.add_argument('--child-folder-name',
-                        default='golf ball in sand', type=str,
+                        default='golf ball in bunker', type=str,
                         help='불러올 데이터셋이 있는 자식 폴더명')
     parser.add_argument('--dataset-save-path',
-                        default='/media/hi/SK Gold P31/Capstone/GolfBall/AutoLabeling', type=str,
+                        default='/media/hi/SK Gold P31/Capstone/GolfBall/LabelBang_AutoLabeling', type=str,
                         help='데이터셋 저장 경로')
 
     parser.add_argument('--before-file-extension', default='.jpg', type=str,
@@ -249,7 +249,7 @@ For python-based LazyConfig, use "path.key=value".
     parser.add_argument('--visual-local-offset-ratio', default='0.15', type=float, help='Mask Generator에서 추출된 mask를 CLIP에서 사용하기 위한 offset 비율')
     # 배경과 같이 큰 물체 : 세부적인 물체의 영향을 줄이기 위해 offset 작게 설정 # 0
     # 골프공과 같이 작은 물체 : 실제 CLIP은 크롤링 데이터로 학습한 것이므로, 물체의 경계면보다 더 큰 배경에 물체가 놓여있었을 것임. 그러므로, 주변 배경이 함께 포함되도록 적당한 offset 설정 # 0.15
-    parser.add_argument('--visual-local-squre-bbox', default=True, type=bool, help='Mask Generator에서 추출된 mask를 CLIP에서 사용할 때, crop을 정사각형으로 할 것인지 설정')
+    parser.add_argument('--visual-local-square-bbox', default=True, type=bool, help='Mask Generator에서 추출된 mask를 CLIP에서 사용할 때, crop을 정사각형으로 할 것인지 설정')
 
     return parser
 
