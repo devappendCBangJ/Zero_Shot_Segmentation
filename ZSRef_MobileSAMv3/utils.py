@@ -196,7 +196,7 @@ For python-based LazyConfig, use "path.key=value".
                         default='/media/hi/SK Gold P31/Capstone/GolfBall/Crawling_cp', type=str,
                         help='불러올 데이터셋이 있는 부모 경로')  # '/media/hi/SK Gold P31/Capstone/GolfBall/Golfball_Near_Remove_Similar_FixLabel_Remove_BboxInBbox_Remove_ErrorBboxRatio/images/train'
     parser.add_argument('--child-folder-name',
-                        default='golf ball in bunker', type=str,
+                        default='baseball ball', type=str,
                         help='불러올 데이터셋이 있는 자식 폴더명')
     parser.add_argument('--dataset-save-path',
                         default='/media/hi/SK Gold P31/Capstone/GolfBall/LabelBang_AutoLabeling', type=str,
@@ -214,23 +214,23 @@ For python-based LazyConfig, use "path.key=value".
     parser.add_argument('--subplot-columns', default=4, type=int, help='Plot의 Column에 들어갈 이미지 개수')
     parser.add_argument('--plt-save-count', default=0, type=int, help='현재까지 저장한 이미지 개수')
 
-    parser.add_argument('--plot-mask-pred', default=True, type=bool, help='예측한 mask 출력 유무')
-    parser.add_argument('--plot-mask-result', default=True, type=bool, help='모델이 예측한 최종 mask 출력 유무')
-    parser.add_argument('--save-bbox-result', default=False, type=bool, help='모델이 예측한 최종 bbox label 저장 유무')
+    parser.add_argument('--plot-mask-pred', default=False, type=bool, help='예측한 mask 출력 유무')
+    parser.add_argument('--plot-mask-result', default=False, type=bool, help='모델이 예측한 최종 mask 출력 유무')
+    parser.add_argument('--save-bbox-result', default=True, type=bool, help='모델이 예측한 최종 bbox label 저장 유무')
 
     # --------------------------------------------------------------
     # Label Save Setting ●
     # --------------------------------------------------------------
-    parser.add_argument('--cls', default='0', type=int, help='예측된 mask에 대한 class명 설정')
+    parser.add_argument('--cls', default='1', type=int, help='예측된 mask에 대한 class명 설정')
 
     # --------------------------------------------------------------
     # Model Setting ●
     # --------------------------------------------------------------
     parser.add_argument('--sam-use', default=True, type=bool, help='Mask Generator로 SAM을 사용할 것인지 결정')
-    parser.add_argument('--sam-mask-size-list', default=[0, 1], type=int, help='SAM에서 추출할 Mask의 크기 결정 (0 : 작은 크기, 1 : 중간 크기, 2 : 큰 크기)')
+    parser.add_argument('--sam-mask-size-list', default=[0, 1, 2], type=int, help='SAM에서 추출할 Mask의 크기 결정 (0 : 작은 크기, 1 : 중간 크기, 2 : 큰 크기)')
 
     parser.add_argument('--custom-dataset-use', default=True, type=bool, help='Custom Dataset 사용할 것인지 결정')
-    parser.add_argument('--sentence-default', default="white round golf ball in the sand", type=str, help='Model의 input으로 사용할 CLIP Text 문장') # [['sand area, brown or white color in the picture']] # [["tan sand ground in the picture"]] # [['wide tan color area, not people, not green, not small area']] # [['Large sandy area, brown or tan or white in the picture, not people, not green, not blue, not small area']]# [["white golf ball in the picture"]]
+    parser.add_argument('--sentence-default', default="baseball in the picture", type=str, help='Model의 input으로 사용할 CLIP Text 문장') # [["white round golf ball in the sand"]] # [["white golf ball in the picture"]] # [['sand area, brown or white color in the picture']] # [["tan sand ground in the picture"]] # [['wide tan color area, not people, not green, not small area']] # [['Large sandy area, brown or tan or white in the picture, not people, not green, not blue, not small area']]
 
     parser.add_argument('--visual-local-mask-use', default=True, type=bool, help='Visual Local 추출 시, mask를 씌울 것인지, 씌우지 않을 것인지 결정')
     parser.add_argument('--v', default='0.5', type=float, help='Visual Embedding 가중치 설정')
@@ -243,7 +243,7 @@ For python-based LazyConfig, use "path.key=value".
     # --------------------------------------------------------------
     # Mask & Bbox PostProcessing Setting ●
     # --------------------------------------------------------------
-    parser.add_argument('--min-pred-mask-area-ratio', default='0.015', type=float, help='Mask Generator에서 예측한 mask에서 남길 최소 mask 크기 비율')
+    parser.add_argument('--min-pred-mask-area-ratio', default='0.01', type=float, help='Mask Generator에서 예측한 mask에서 남길 최소 mask 크기 비율')
     # 배경과 같이 큰 물체 : 세부적인 물체의 영향을 줄이기 위해 크게 설정 # 10000
     # 골프공과 같이 작은 물체 : 노이즈의 영향이 없도록 최대한 크게 but 물체가 검출되도록 작게 설정 # 0.005 ~ 0.02
     parser.add_argument('--visual-local-offset-ratio', default='0.15', type=float, help='Mask Generator에서 추출된 mask를 CLIP에서 사용하기 위한 offset 비율')

@@ -63,8 +63,8 @@ mobile_sam.eval()
 predictor = SamPredictor(mobile_sam)
 
 # (3) 이미지 폴더 세팅
-base_image_folder = '/media/hi/SK Gold P31/Capstone/GolfBall/Crawling_cp/golf ball in bunker'
-base_label_folder = '/media/hi/SK Gold P31/Capstone/GolfBall/LabelBang_AutoLabeling/golf ball in bunker'
+base_image_folder = '/media/hi/SK Gold P31/Capstone/GolfBall/3_2_Crawling_cp/golf ball in sand bunker_for background'
+base_label_folder = '/media/hi/SK Gold P31/Capstone/GolfBall/4_1_LabelBang_AutoLabeling/golf ball in sand bunker_for background'
 
 if not os.path.exists(base_label_folder):
     os.makedirs(base_label_folder)
