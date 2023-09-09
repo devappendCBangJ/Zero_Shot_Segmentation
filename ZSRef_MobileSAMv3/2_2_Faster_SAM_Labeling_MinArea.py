@@ -71,6 +71,7 @@ if not os.path.exists(base_label_folder):
 
 # (4) Label 초기화 세팅
 default_class_num = 0
+default_min_area_ratio = 0.002
 
 # --------------------------------------------------------------
 # 2) 이미지 클릭 시 작업
@@ -166,6 +167,8 @@ class ImageWindow(QWidget):
         self.mask_size_layout = QVBoxLayout() # Mask Size Checkbox
         self.mask_batch_layout = QVBoxLayout() # Mask Batch Checkbox
         self.add_clear_layout = QVBoxLayout() # Point Choice Checkbox
+        self.class_num_box_text_layout = QHBoxLayout()  # Class Num Box Text
+        self.min_area_ratio_box_text_layout = QHBoxLayout()  # Min Area Ratio Box Text
         self.text_layout = QVBoxLayout() # Text Checkbox
         self.mask_size_batch_text_layout = QHBoxLayout() # Mask Size Batch Text Checkbox
         self.button_layout = QHBoxLayout() # Button Plot
@@ -178,14 +181,24 @@ class ImageWindow(QWidget):
         self.next_button.clicked.connect(self.loadNextImages)
 
         # [4] Class명 설정 Textbox
+        self.class_num_title = QLabel(self)
         self.class_num_box = QLineEdit(self)
+        self.min_area_ratio_title = QLabel(self)
+        self.min_area_ratio_box = QLineEdit(self)
         self.labeled_image_count = QLabel(self)
         self.labeled_mask_count = QLabel(self)
+
+        self.class_num_title.setFixedSize(200, 17)
         self.class_num_box.setFixedSize(200, 17)
+        self.min_area_ratio_title.setFixedSize(200, 17)
+        self.min_area_ratio_box.setFixedSize(200, 17)
         self.labeled_image_count.setFixedSize(200, 17)
         self.labeled_mask_count.setFixedSize(200, 17)
 
+        self.class_num_title.setText(f'class_num_box_count ')
         self.class_num_box.setText(str(default_class_num))
+        self.min_area_ratio_title.setText(f'min_area ratio ')
+        self.min_area_ratio_box.setText(str(default_min_area_ratio))
         self.labeled_image_count.setText(f'image_count : 0')
         self.labeled_mask_count.setText(f'mask_count : 0')
 
@@ -252,7 +265,13 @@ class ImageWindow(QWidget):
         self.mask_batch_layout.addWidget(self.batch_check)
         self.mask_batch_layout.addWidget(self.only_one_check)
 
-        self.text_layout.addWidget(self.class_num_box)
+        self.class_num_box_text_layout.addWidget(self.class_num_title)
+        self.class_num_box_text_layout.addWidget(self.class_num_box)
+        self.min_area_ratio_box_text_layout.addWidget(self.min_area_ratio_title)
+        self.min_area_ratio_box_text_layout.addWidget(self.min_area_ratio_box)
+
+        self.text_layout.addLayout(self.class_num_box_text_layout)
+        self.text_layout.addLayout(self.min_area_ratio_box_text_layout)
         self.text_layout.addWidget(self.labeled_image_count)
         self.text_layout.addWidget(self.labeled_mask_count)
 
@@ -481,6 +500,7 @@ class ImageWindow(QWidget):
                     label.final_class_nums = [label.class_nums[-1]]
 
                 # [8] 최종 마스크 선택 + Label 파일 저장
+                mask_area_min = img_w * img_h * float(self.min_area_ratio_box.text())
                 if len(masks):
                     color_masks = []
                     for mask, score, logit, class_num in zip(masks, scores, logits, label.final_class_nums):
@@ -507,30 +527,32 @@ class ImageWindow(QWidget):
                         """
 
                         # 3]] Contour 전처리 (최대 크기 Contour 추출 + Scaling)
-                        if contours:
-                            largest_contour = max(contours, key=cv2.contourArea)
+                        result_contours = []
+                        result_scaled_large_contours = []
+                        for contour in contours:
                             """
-                            largest_contour.shape : (132, 1, 2)
-                            largest_contour : [[[206 126]],, [[205 127]],, [[199 127]],, [[198 128]],, [[196 128]],, [[195 129]],, [[193 129]],, [[192 130]],, [[190 130]],, [[189 131]],, [[188 131]],, [[187 132]],, [[186 132]],, [[185 133]],, [[184 133]],, [[183 134]],, [[182 134]],, [[177 139]],, [[177 140]],, [[173 144]],, [[173 145]],, [[172 146]],, [[172 147]],, [[171 148]],, [[171 149]],, [[170 150]],, [[170 151]],, [[169 152]],, [[169 154]],, [[168 155]],, [[168 157]],, [[167 158]],, [[167 163]],, [[166 164]],, [[166 171]],, [[167 172]],, [[167 177]],, [[168 178]],, [[168 180]],, [[169 181]],, [[169 183]],, [[170 184]],, [[170 185]],, [[171 186]],, [[171 188]],, [[173 190]],, [[173 191]],, [[174 192]],, [[174 193]],, [[177 196]],, [[178 196]],, [[179 197]],, [[179 198]],, [[181 200]],, [[182 200]],, [[183 201]],, [[184 201]],, [[186 203]],, [[187 203]],, [[188 204]],, [[189 204]],, [[190 205]],, [[191 205]],, [[192 206]],, [[193 206]],, [[194 207]],, [[199 207]],, [[200 208]],, [[203 208]],, [[204 209]],, [[211 209]],, [[212...
+                            contour.shape : (132, 1, 2)
+                            contour : [[[206 126]],, [[205 127]],, [[199 127]],, [[198 128]],, [[196 128]],, [[195 129]],, [[193 129]],, [[192 130]],, [[190 130]],, [[189 131]],, [[188 131]],, [[187 132]],, [[186 132]],, [[185 133]],, [[184 133]],, [[183 134]],, [[182 134]],, [[177 139]],, [[177 140]],, [[173 144]],, [[173 145]],, [[172 146]],, [[172 147]],, [[171 148]],, [[171 149]],, [[170 150]],, [[170 151]],, [[169 152]],, [[169 154]],, [[168 155]],, [[168 157]],, [[167 158]],, [[167 163]],, [[166 164]],, [[166 171]],, [[167 172]],, [[167 177]],, [[168 178]],, [[168 180]],, [[169 181]],, [[169 183]],, [[170 184]],, [[170 185]],, [[171 186]],, [[171 188]],, [[173 190]],, [[173 191]],, [[174 192]],, [[174 193]],, [[177 196]],, [[178 196]],, [[179 197]],, [[179 198]],, [[181 200]],, [[182 200]],, [[183 201]],, [[184 201]],, [[186 203]],, [[187 203]],, [[188 204]],, [[189 204]],, [[190 205]],, [[191 205]],, [[192 206]],, [[193 206]],, [[194 207]],, [[199 207]],, [[200 208]],, [[203 208]],, [[204 209]],, [[211 209]],, [[212...
                             """
-                            flatten_largest_contour = largest_contour.flatten().tolist()
-                            """
-                            flatten_largest_contour shape : list 264
-                            flatten_largest_contour : [205, 126, 204, 127, 199, 127, 198, 128, 196, 128, 195, 129, 193, 129, 192, 130, 190, 130, 189, 131, 188, 131, 187, 132, 186, 132, 185, 133, 184, 133, 183, 134, 182, 134, 177, 139, 177, 140, 173, 144, 173, 145, 172, 146, 172, 147, 171, 148, 171, 149, 170, 150, 170, 151, 169, 152, 169, 154, 168, 155, 168, 157, 167, 158, 167, 163, 166, 164, 166, 171, 167, 172, 167, 177, 168, 178, 168, 180, 169, 181, 169, 183, 170, 184, 170, 185, 171, 186, 171, 188, 173, 190, 173, 191, 174, 192, 174, 193, 181, 200...
-                            """
-                            # largest_contour_pairs = [(largest_contour[i], largest_contour[i + 1]) for i in range(0, len(largest_contour), 2)]
-                            """
-                            largest_contour_pairs shape : list 264 -> tuple 2
-                            largest_contour_pairs : [(205, 126), (204, 127), (199, 127), (198, 128), (196, 128), (195, 129), (193, 129), (192, 130), (190, 130), (189, 131), (188, 131), (187, 132), (186, 132), (185, 133), (184, 133), (183, 134), (182, 134), (177, 139), (177, 140), (173, 144), (173, 145), (172, 146), (172, 147), (171, 148), (171, 149), (170, 150), (170, 151), (169, 152), (169, 154), (168, 155), (168, 157), (167, 158), (167, 163), (166, 164), (166, 171), (167, 172), (167, 177), (168, 178), (168, 180), (169, 181), (169, 183), (170, 184), (170, 185), (171, 186), (171, 188), (173, 190), (173, 191), (174, 192), (174, 193), (181, 200), (182, 200), (183, 201), (184, 201), (187, 204), (189, 204), (190, 205), (191, 205), (192, 206), (193, 206), (194, 207), (198, 207), (199, 208), (203, 208), (204, 209), (211, 209), (212, 208), (216, 208), (217, 207), (219, 207), (220, 206), (222, 206), (223, 205), (224, 205), (225, 204), (226, 204), (227, 203), (228, 203), (229, 202), (230, 202), (233, 199), (234, 199), (235, 198), (235, 197), (240, 192), (240, 191), (241, 190), (241, 189), (242, 188), (242, 187), (243, 186), (243, 184), (244, 183), (244, 182), (246, 180), (246, 178), (247, 177), (247, 175), (248, 174), (248, 162), (247, 161...
-                            """
-                            scaled_largest_contour = [coor/img_w if c_idx % 2 == 0 else coor/img_h for c_idx, coor in enumerate(flatten_largest_contour)]
-                            """
-                            scaled_largest_contour shape : (264)
-                            scaled_largest_contour : [0.412, 0.42, 0.41, 0.42333333333333334, 0.398, 0.42333333333333334, 0.396, 0.4266666666666667, 0.392, 0.4266666666666667, 0.39, 0.43, 0.386, 0.43, 0.384, 0.43333333333333335, 0.38, 0.43333333333333335, 0.378, 0.43666666666666665, 0.376, 0.43666666666666665, 0.374, 0.44, 0.372, 0.44, 0.37, 0.44333333333333336, 0.368, 0.44333333333333336, 0.366, 0.44666666666666666, 0.364, 0.44666666666666666, 0.354, 0.4633333333333333, 0.354, 0.4666666666666667, 0.346, 0.48, 0.346, 0.48333333333333334, 0.344, 0.4866666666666667, 0.344, 0.49, 0.342, 0.49333333333333335, 0.342, 0.49666666666666665, 0.34, 0.5, 0.34, 0.5033333333333333, 0.338, 0.5066666666666667, 0.338, 0.5133333333333333, 0.336, 0.5166666666666667, 0.336, 0.5233333333333333, 0.334, 0.5266666666666666, 0.334, 0.5433333333333333, 0.332, 0.5466666666666666, 0.332, 0.57, 0.334, 0.5733333333333334, 0.334, 0.59, 0.336, 0.5933333333333334, 0.336, 0.6, 0.338, 0.6033333333333334, 0.338, 0.61, 0.34, 0.6133333333333333, 0.34, 0.6166666666666667, 0.342, 0.62, 0.342, 0.6266666666666667, 0.346, 0.6333333333333333, 0.346, 0.6366666666666667, 0.348, 0.64, 0.348, 0.6433333333333333, 0.354, 0.6533333333333333...
-                            """
+                            if cv2.contourArea(contour) > mask_area_min:
+                                result_contours.append(contour)
+                                flatten_large_contour = contour.flatten().tolist()
+                                """
+                                flatten_large_contour shape : list 264
+                                flatten_large_contour : [205, 126, 204, 127, 199, 127, 198, 128, 196, 128, 195, 129, 193, 129, 192, 130, 190, 130, 189, 131, 188, 131, 187, 132, 186, 132, 185, 133, 184, 133, 183, 134, 182, 134, 177, 139, 177, 140, 173, 144, 173, 145, 172, 146, 172, 147, 171, 148, 171, 149, 170, 150, 170, 151, 169, 152, 169, 154, 168, 155, 168, 157, 167, 158, 167, 163, 166, 164, 166, 171, 167, 172, 167, 177, 168, 178, 168, 180, 169, 181, 169, 183, 170, 184, 170, 185, 171, 186, 171, 188, 173, 190, 173, 191, 174, 192, 174, 193, 181, 200...
+                                """
+                                scaled_large_contour = [coor / img_w if c_idx % 2 == 0 else coor / img_h for c_idx, coor in enumerate(flatten_large_contour)]
+                                result_scaled_large_contours.append(scaled_large_contour)
+                                """
+                                scaled_largest_contour shape : (264)
+                                scaled_largest_contour : [0.412, 0.42, 0.41, 0.42333333333333334, 0.398, 0.42333333333333334, 0.396, 0.4266666666666667, 0.392, 0.4266666666666667, 0.39, 0.43, 0.386, 0.43, 0.384, 0.43333333333333335, 0.38, 0.43333333333333335, 0.378, 0.43666666666666665, 0.376, 0.43666666666666665, 0.374, 0.44, 0.372, 0.44, 0.37, 0.44333333333333336, 0.368, 0.44333333333333336, 0.366, 0.44666666666666666, 0.364, 0.44666666666666666, 0.354, 0.4633333333333333, 0.354, 0.4666666666666667, 0.346, 0.48, 0.346, 0.48333333333333334, 0.344, 0.4866666666666667, 0.344, 0.49, 0.342, 0.49333333333333335, 0.342, 0.49666666666666665, 0.34, 0.5, 0.34, 0.5033333333333333, 0.338, 0.5066666666666667, 0.338, 0.5133333333333333, 0.336, 0.5166666666666667, 0.336, 0.5233333333333333, 0.334, 0.5266666666666666, 0.334, 0.5433333333333333, 0.332, 0.5466666666666666, 0.332, 0.57, 0.334, 0.5733333333333334, 0.334, 0.59, 0.336, 0.5933333333333334, 0.336, 0.6, 0.338, 0.6033333333333334, 0.338, 0.61, 0.34, 0.6133333333333333, 0.34, 0.6166666666666667, 0.342, 0.62, 0.342, 0.6266666666666667, 0.346, 0.6333333333333333, 0.346, 0.6366666666666667, 0.348, 0.64, 0.348, 0.6433333333333333, 0.354, 0.6533333333333333...
+                                """
+                        if result_contours:
+                            result_contours = np.array(result_contours)
+                            bbox_pairs = np.vstack([rc.reshape(-1, 2) for rc in result_contours])
 
                             # 4]] Bbox 전처리 (Bbox 추출 + Scaling)
-                            box_x, box_y, box_w, box_h = cv2.boundingRect(largest_contour)
+                            box_x, box_y, box_w, box_h = cv2.boundingRect(bbox_pairs)
                             box_cx = box_x + box_w // 2
                             box_cy = box_y + box_h // 2
                             scaled_box_cx = box_cx / img_w
@@ -539,14 +561,14 @@ class ImageWindow(QWidget):
                             scaled_box_h = box_h / img_h
 
                             # 5]] Contour + Bbox 정보 출력
-                            cv2.drawContours(image, largest_contour, -1, (0, 255, 0), 5)
+                            cv2.drawContours(image, result_contours, -1, (0, 255, 0), 5)
                             cv2.rectangle(image, (box_x, box_y), ((box_x + box_w), (box_y + box_h)), (255, 0, 0), 2)
-                            largest_contour_area = cv2.contourArea(largest_contour)
-                            print(f"[detect] detected : {len(contours)}, largest_area : {largest_contour_area}, ")
+                            print(f"[detect] detected : {len(contours)}, largest_area : {[cv2.contourArea(rc) for rc in result_contours]}, ")
 
                             # 6]] Label(Contour + Bbox 활용) 파일 저장
                             with open(label.abs_seg_path, 'a+') as seg_txt:
-                                seg_txt.write(f"{str(class_num)} {' '.join(map(str, scaled_largest_contour))}" + '\n')
+                                for rslc in result_scaled_large_contours:
+                                    seg_txt.write(f"{str(class_num)} {' '.join(map(str, rslc))}" + '\n')
                             with open(label.abs_bbox_path, 'a+') as bbox_txt:
                                 bbox_txt.write(f"{str(class_num)} {scaled_box_cx} {scaled_box_cy} {scaled_box_w} {scaled_box_h}" + '\n')
 
