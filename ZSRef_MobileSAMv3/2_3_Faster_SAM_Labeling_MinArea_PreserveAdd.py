@@ -63,8 +63,8 @@ mobile_sam.eval()
 predictor = SamPredictor(mobile_sam)
 
 # (3) 이미지 폴더 세팅
-base_image_folder = '/media/hi/SK Gold P31/Capstone/GolfBall/3_2_Crawling_cp/골프공'
-base_label_folder = '/media/hi/SK Gold P31/Capstone/GolfBall/4_1_LabelBang_AutoLabeling/골프공'
+base_image_folder = '/media/hi/SK Gold P31/Capstone/GolfBall/3_2_Crawling_cp/golf ball in pond'
+base_label_folder = '/media/hi/SK Gold P31/Capstone/GolfBall/4_1_LabelBang_AutoLabeling/ball/golf ball in pond'
 
 if not os.path.exists(base_label_folder):
     os.makedirs(base_label_folder)
@@ -78,9 +78,8 @@ default_min_area_ratio = 0.002
 # --------------------------------------------------------------
 class ClickableImageLabel(QLabel):
     # (1) 초기 세팅
-    def __init__(self, loaded_masked_image, loaded_class_nums, loaded_contours, loaded_scaled_contours, loaded_bboxes, loaded_scaled_bboxes, scaled_pixmap, real_image_size, abs_image_path, abs_seg_path, abs_bbox_path):
+    def __init__(self, loaded_class_nums, loaded_contours, loaded_scaled_contours, loaded_bboxes, loaded_scaled_bboxes, scaled_pixmap, real_image_size, abs_image_path, abs_seg_path, abs_bbox_path):
         super().__init__()
-        self.loaded_masked_image = loaded_masked_image
         self.loaded_class_nums = loaded_class_nums
         self.loaded_contours = loaded_contours
         self.loaded_scaled_contours = loaded_scaled_contours
@@ -406,7 +405,7 @@ class ImageWindow(QWidget):
                     scaled_pixmap = pixmap.scaled(300, 200, Qt.KeepAspectRatio)
 
                     # 6]] 클릭 좌표 & 파일명 추출
-                    label = ClickableImageLabel(loaded_masked_image, loaded_class_nums, loaded_contours, loaded_scaled_contours, loaded_bboxes, loaded_scaled_bboxes, scaled_pixmap, {'real_image_width':pixmap.width(), 'real_image_height':pixmap.height()}, abs_image_path, abs_seg_path, abs_bbox_path)
+                    label = ClickableImageLabel(loaded_class_nums, loaded_contours, loaded_scaled_contours, loaded_bboxes, loaded_scaled_bboxes, scaled_pixmap, {'real_image_width':pixmap.width(), 'real_image_height':pixmap.height()}, abs_image_path, abs_seg_path, abs_bbox_path)
                     label.mousePressEvent = lambda event, l=label: self.imageClicked(event, l)
 
                     # 7]] Plot Update
@@ -434,7 +433,7 @@ class ImageWindow(QWidget):
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         img_h, img_w, img_c = image.shape
         bytes_per_line = 3 * img_w
-        masked_image = image
+        masked_image = image.copy()
 
         # [2] Label 파일 초기화
         with open(label.abs_seg_path, 'w') as seg_txt:
@@ -495,36 +494,33 @@ class ImageWindow(QWidget):
 
             # [5] 불러온 Label 시각화 + Label 파일 저장
             color_masks = []
-            for loaded_class_num, loaded_contour, loaded_scaled_contour, loaded_bbox, loaded_scaled_bbox in zip(
-                    label.loaded_class_nums, label.loaded_contours, label.loaded_scaled_contours,
-                    label.loaded_bboxes, label.loaded_scaled_bboxes):
-                # 1]] Contour + Bbox 정보 출력
+            for loaded_class_num, loaded_contour, loaded_scaled_contour in zip(label.loaded_class_nums, label.loaded_contours, label.loaded_scaled_contours):
+                # 1]] Contour Mask 시각화
                 r, g, b = np.random.randint(100, 255), np.random.randint(100, 255), np.random.randint(100, 255)
                 color_mask = np.zeros_like(image)
                 cv2.drawContours(color_mask, [loaded_contour], -1, (r, g, b), thickness=-1)
 
-                cv2.drawContours(image, loaded_contour, -1, (0, 255, 0), 5)
-                cv2.rectangle(image, (loaded_bbox[0], loaded_bbox[1]),
-                              ((loaded_bbox[0] + loaded_bbox[2]), (loaded_bbox[1] + loaded_bbox[3])), (255, 0, 0),
-                              2)
-                cv2.putText(image, loaded_class_num, (loaded_bbox[0] + loaded_bbox[2] // 2, loaded_bbox[1]),
-                            cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 3, cv2.LINE_AA)
-
-                # 2]] Label(Contour + Bbox 활용) 파일 저장
+                # 2]] Contour Label 파일 저장
                 with open(label.abs_seg_path, 'a+') as seg_txt:
                     seg_txt.write(f"{str(loaded_class_num)} {' '.join(map(str, loaded_scaled_contour))}" + '\n')
-                with open(label.abs_bbox_path, 'a+') as bbox_txt:
-                    scaled_box_cx, scaled_box_cy, scaled_box_w, scaled_box_h = list(map(float, loaded_scaled_bbox))
-                    bbox_txt.write(
-                        f"{str(loaded_class_num)} {scaled_box_cx} {scaled_box_cy} {scaled_box_w} {scaled_box_h}" + '\n')
 
-                # 3]] 마스크 영역 합성
+                # 3]] Contour Mask 합성
                 if not len(color_masks):
                     color_masks = color_mask
                 else:
                     color_masks += color_mask
 
-                masked_image = cv2.addWeighted(image, 0.5, color_masks, 1 - 0.5, 0)
+                # 4]] Contour 시각화
+                cv2.drawContours(masked_image, loaded_contour, -1, (0, 255, 0), 5)
+            for loaded_class_num, loaded_bbox, loaded_scaled_bbox in zip(label.loaded_class_nums, label.loaded_bboxes, label.loaded_scaled_bboxes):
+                # 5]] Bbox Label 파일 저장
+                with open(label.abs_bbox_path, 'a+') as bbox_txt:
+                    scaled_box_cx, scaled_box_cy, scaled_box_w, scaled_box_h = list(map(float, loaded_scaled_bbox))
+                    bbox_txt.write(
+                        f"{str(loaded_class_num)} {scaled_box_cx} {scaled_box_cy} {scaled_box_w} {scaled_box_h}" + '\n')
+                # 6]] Bbox 시각화
+                cv2.rectangle(masked_image, (loaded_bbox[0], loaded_bbox[1]), ((loaded_bbox[0] + loaded_bbox[2]), (loaded_bbox[1] + loaded_bbox[3])), (255, 0, 0), 2)
+                cv2.putText(masked_image, loaded_class_num, (loaded_bbox[0] + loaded_bbox[2] // 2, loaded_bbox[1]), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 3, cv2.LINE_AA)
 
             # - Label 1개 이상 입력한 경우 : SAM의 input image 세팅 + 마스크 추출 + 마스크 전처리 + 마스크 최종 선택 + Label 파일 저장
             if label.input_labels:
@@ -566,8 +562,8 @@ class ImageWindow(QWidget):
 
                 # [9] 새로 그린 최종 마스크 선택 + 시각화 + Label 파일 저장
                 mask_area_min = img_w * img_h * float(self.min_area_ratio_box.text())
+                is_result_mask = False
                 if len(masks):
-                    color_masks = []
                     for mask, score, logit, class_num in zip(masks, scores, logits, label.final_class_nums):
                         # 1]] 최종 마스크 선택
                         mask_result = mask[np.argmax(score), :, :]
@@ -613,6 +609,7 @@ class ImageWindow(QWidget):
                                 scaled_largest_contour : [0.412, 0.42, 0.41, 0.42333333333333334, 0.398, 0.42333333333333334, 0.396, 0.4266666666666667, 0.392, 0.4266666666666667, 0.39, 0.43, 0.386, 0.43, 0.384, 0.43333333333333335, 0.38, 0.43333333333333335, 0.378, 0.43666666666666665, 0.376, 0.43666666666666665, 0.374, 0.44, 0.372, 0.44, 0.37, 0.44333333333333336, 0.368, 0.44333333333333336, 0.366, 0.44666666666666666, 0.364, 0.44666666666666666, 0.354, 0.4633333333333333, 0.354, 0.4666666666666667, 0.346, 0.48, 0.346, 0.48333333333333334, 0.344, 0.4866666666666667, 0.344, 0.49, 0.342, 0.49333333333333335, 0.342, 0.49666666666666665, 0.34, 0.5, 0.34, 0.5033333333333333, 0.338, 0.5066666666666667, 0.338, 0.5133333333333333, 0.336, 0.5166666666666667, 0.336, 0.5233333333333333, 0.334, 0.5266666666666666, 0.334, 0.5433333333333333, 0.332, 0.5466666666666666, 0.332, 0.57, 0.334, 0.5733333333333334, 0.334, 0.59, 0.336, 0.5933333333333334, 0.336, 0.6, 0.338, 0.6033333333333334, 0.338, 0.61, 0.34, 0.6133333333333333, 0.34, 0.6166666666666667, 0.342, 0.62, 0.342, 0.6266666666666667, 0.346, 0.6333333333333333, 0.346, 0.6366666666666667, 0.348, 0.64, 0.348, 0.6433333333333333, 0.354, 0.6533333333333333...
                                 """
                         if result_contours:
+                            is_result_mask = True
                             result_contours = np.array(result_contours)
                             bbox_pairs = np.vstack([rc.reshape(-1, 2) for rc in result_contours])
 
@@ -625,20 +622,14 @@ class ImageWindow(QWidget):
                             scaled_box_w = box_w / img_w
                             scaled_box_h = box_h / img_h
 
-                            # 5]] Contour + Bbox 정보 출력
-                            cv2.drawContours(image, result_contours, -1, (0, 255, 0), 5)
-                            cv2.rectangle(image, (box_x, box_y), ((box_x + box_w), (box_y + box_h)), (255, 0, 0), 2)
-                            cv2.putText(image, class_num, (box_x + box_w // 2, box_y), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 3, cv2.LINE_AA)
-                            print(f"[detect] detected : {len(contours)}, largest_area : {[cv2.contourArea(rc) for rc in result_contours]}, ")
-
-                            # 6]] Label(Contour + Bbox 활용) 파일 저장
+                            # 5]] Label(Contour + Bbox 활용) 파일 저장
                             with open(label.abs_seg_path, 'a+') as seg_txt:
                                 for rslc in result_scaled_large_contours:
                                     seg_txt.write(f"{str(class_num)} {' '.join(map(str, rslc))}" + '\n')
                             with open(label.abs_bbox_path, 'a+') as bbox_txt:
                                 bbox_txt.write(f"{str(class_num)} {scaled_box_cx} {scaled_box_cy} {scaled_box_w} {scaled_box_h}" + '\n')
 
-                            # 7]] 마스크 영역 합성
+                            # 6]] 마스크 영역 합성
                             mask_result = mask_result * 255
                             # color_mask = cv2.merge([mask_result * 30, mask_result * 144, mask_result * 255])
                             color_mask = cv2.merge([mask_result * np.random.randint(100, 255), mask_result * np.random.randint(100, 255), mask_result * np.random.randint(100, 255)])
@@ -647,7 +638,15 @@ class ImageWindow(QWidget):
                             else:
                                 color_masks += color_mask
 
-                            masked_image = cv2.addWeighted(image, 0.5, color_masks, 1 - 0.5, 0)
+                            # 7]] Contour + Bbox 정보 출력
+                            cv2.drawContours(masked_image, result_contours, -1, (0, 255, 0), 5)
+                            cv2.rectangle(masked_image, (box_x, box_y), ((box_x + box_w), (box_y + box_h)), (255, 0, 0), 2)
+                            cv2.putText(masked_image, class_num, (box_x + box_w // 2, box_y), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 3, cv2.LINE_AA)
+                            print(f"[abs_path] {label.abs_image_path} [detect] count : {len(contours)}, largest_area : {[cv2.contourArea(rc) for rc in result_contours]}, ")
+
+                    # 8]] Masked Image 합성
+                    if is_result_mask == True:
+                        masked_image = cv2.addWeighted(masked_image, 0.5, color_masks, 1 - 0.5, 0)
 
                     # # - 마스크 영역 출력 by matplotlib
                     # plt.figure(figsize=(10, 10))
